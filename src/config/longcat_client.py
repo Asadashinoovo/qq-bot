@@ -234,7 +234,7 @@ class LongCatClient:
     ) -> str:
         """
         describe_image 的异步版本。
-        参数与同步版本完全一致，仅返回方式不同。
+        仅支持 image_base64 参数（图片路径和URL请自行转换后再传入）。
         """
         response = await self.client.chat.completions.create(
             model=self.model,
@@ -251,6 +251,7 @@ class LongCatClient:
                     {"type": "text", "text": prompt}
                 ]
             }],
+            stream=False,
             timeout=timeout
         )
         return response.choices[0].message.content.strip()
