@@ -1,0 +1,7 @@
+src/static
+.claude
+__pycache__
+data
+.venv
+dotest.py
+tmp

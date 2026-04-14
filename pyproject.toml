@@ -1,0 +1,41 @@
+[project]
+name = "mai-bot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aiohttp>=3.13.4",
+    "arrow>=1.4.0",
+    "crawl4ai>=0.8.6",
+    "dashscope>=1.25.16",
+    "faiss-cpu>=1.13.2",
+    "fastapi>=0.135.2",
+    "httpx>=0.28.1",
+    "jinja2-time>=0.2.0",
+    "langchain>=1.2.13",
+    "langchain-anthropic>=1.4.0",
+    "langchain-community>=0.4.1",
+    "langchain-huggingface>=1.2.1",
+    "langchain-openai>=1.1.12",
+    "loguru>=0.7.3",
+    "nb-cli>=1.7.2",
+    "nonebot-adapter-onebot>=2.4.6",
+    "nonebot-plugin-userinfo>=0.2.6",
+    "nonebot2>=2.4.4",
+    "pillow>=12.1.1",
+    "pyfiglet>=1.0.4",
+    "python-dotenv>=1.2.2",
+    "pyyaml>=6.0.3",
+    "requests>=2.33.1",
+    "sentence-transformers>=5.3.0",
+    "unstructured-inference>=1.6.4",
+    "unstructured[all-docs,pdf]>=0.22.16",
+    "uvicorn>=0.42.0",
+    "websockets>=16.0",
+]
+
+# [tool.uv.workspace]
+# members = [
+#     "pachong",
+# ]
