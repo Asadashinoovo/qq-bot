@@ -197,3 +197,41 @@ async def create_image(query: str, runtime: ToolRuntime[Context]) -> str:
 3. `load_image.py` — 单例 + 异步文件 + 异步 API 调用
 4. 添加 `aiofiles` 依赖
 5. 测试验证
+
+---
+
+## 实施修正记录
+
+### 修正 1：OpenAI SDK 同步调用问题
+
+**发现时间**：集成测试阶段（2026-04-15）
+
+**问题描述**：
+`LongCatClient.describe_image_async` 中直接对 `self.client.chat.completions.create()` 使用 `await`，但 `ChatOpenAI`（基于 `openai` SDK）的 `.chat.completions.create()` 是**同步方法**，`await` 一个同步调用不会变成异步，而是直接返回 `ChatCompletion` 对象，导致：
+```
+TypeError: object ChatCompletion can't be used in 'await' expression
+```
+
+**根因**：
+`openai` SDK < 2.0 的 `ChatOpenAI` 客户端不支持真正的异步 `await`。在 `async def` 函数里调用第三方 SDK API 时，需要确认其是否为原生异步（`async def` + `await`），否则必须用 `asyncio.to_thread` 包装。
+
+**修复方案**：
+```python
+import asyncio
+
+async def describe_image_async(self, *, image_base64: str, ...) -> str:
+    def _sync_call():
+        return self.client.chat.completions.create(
+            model=self.model,
+            messages=[...],
+            timeout=timeout
+        )
+    response = await asyncio.to_thread(_sync_call)
+    return response.choices[0].message.content.strip()
+```
+
+**涉及文件**：
+- `src/config/longcat_client.py` — `describe_image_async` 方法
+
+**教训**：
+> LangChain 的 `ChatOpenAI` 底层封装的是 `openai` SDK 同步客户端。在 async 函数中调用第三方 SDK API 时，需要确认其是否为原生异步（`async def` + `await`），否则必须用 `asyncio.to_thread` 包装。
