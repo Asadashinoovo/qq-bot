@@ -222,5 +222,35 @@ class LongCatClient:
         if return_base64:
             with open(output_path, "rb") as f:
                 result["audio_base64"] = base64.b64encode(f.read()).decode('utf-8')
-        
+
         return result
+
+    async def describe_image_async(
+        self,
+        *,
+        image_base64: str,
+        prompt: str = "请详细描述这张图片的内容",
+        timeout: int = 120
+    ) -> str:
+        """
+        describe_image 的异步版本。
+        参数与同步版本完全一致，仅返回方式不同。
+        """
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "input_image",
+                        "input_image": {
+                            "type": "base64",
+                            "data": [image_base64]
+                        }
+                    },
+                    {"type": "text", "text": prompt}
+                ]
+            }],
+            timeout=timeout
+        )
+        return response.choices[0].message.content.strip()
