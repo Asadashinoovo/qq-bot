@@ -66,8 +66,8 @@ def load_memory(group_id,current_user_id,current_user_name,current_user_card):
         result.append("【群聊历史记录】（仅供参考）：")
         result.append(f"群 {group_id} 的最近 {len(history)} 条消息：\n")
 
-        # 按原始顺序输出每条消息
-        for msg in history:
+        # 按时间倒序输出，最新的消息在前（LLM attention 更集中在末尾）
+        for msg in reversed(history):
             result.append(f"QQ号:{msg['user_id']} 用户名:{msg['user_name']} 群名片:{msg['user_card']}")
             result.append(f"message: {msg['message']}")
             result.append("")  # 空行
@@ -210,7 +210,7 @@ async def _(bot: Bot, event: MessageEvent, message: Message = EventMessage()):
         await llm.send(res[1])
         return '''
 
-    group_id = event.group_id
+    group_id = event.group_id##获得当前用户的基本信息
     user_id=event.get_user_id()
     user_card=event.sender.card
     user_name=event.sender.nickname
@@ -218,16 +218,10 @@ async def _(bot: Bot, event: MessageEvent, message: Message = EventMessage()):
 
     message=replace_cq_codes_with_image_placeholder(str(message))
     message=str(message).replace("/testllm","",1)## 删除输入的第一个/testllm 防止模型混淆
-
     rag_context=await retrieve_context(message)##召回rag
-
     memory=load_memory(group_id,user_id,user_name,user_card)##加载短期记忆
     msg=f"{rag_context}\n\n<<USER>>\n{message}\n<</USER>>\n\n\n{memory}"##拼接rag召回的内容和用户提示词
 
-    
-    
-    ##获得当前用户的基本信息
-    
 
     if group_id is None:
           # 私聊情况，使用用户 ID 替代（避免工具报错）
