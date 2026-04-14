@@ -16,7 +16,7 @@ from src.config.llmconfig import llmmodel
 from src.plugins import system_prompt
 from src.agents.agent_config import DEFAULT_AGENT_CONFIG
 from src.tools.load_image import create_image
-import re,httpx,os
+import re,httpx,os,time
 from pathlib import Path
 from src.tools.user_at import user_at
 from nonebot import logger
@@ -68,7 +68,16 @@ def load_memory(group_id,current_user_id,current_user_name,current_user_card):
 
         # 按时间倒序输出，最新的消息在前（LLM attention 更集中在末尾）
         for msg in reversed(history):
-            result.append(f"QQ号:{msg['user_id']} 用户名:{msg['user_name']} 群名片:{msg['user_card']}")
+            seconds_ago = int(time.time()) - msg["time"]
+            if seconds_ago < 60:
+                time_str = f"{seconds_ago}秒前"
+            elif seconds_ago < 3600:
+                time_str = f"{seconds_ago // 60}分钟前"
+            elif seconds_ago < 86400:
+                time_str = f"{seconds_ago // 3600}小时前"
+            else:
+                time_str = f"{seconds_ago // 86400}天前"
+            result.append(f"[{time_str}] QQ号:{msg['user_id']} 用户名:{msg['user_name']} 群名片:{msg['user_card']}")
             result.append(f"message: {msg['message']}")
             result.append("")  # 空行
 
