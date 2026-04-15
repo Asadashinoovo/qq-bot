@@ -16,9 +16,10 @@ from src.config.llmconfig import llmmodel
 from src.plugins import system_prompt
 from src.agents.agent_config import DEFAULT_AGENT_CONFIG
 from src.tools.load_image import create_image
-import re,httpx,os,time
+import re,httpx,os,time,asyncio
 from pathlib import Path
 from src.tools.user_at import user_at
+from src.tools.split_message import split_message_for_human
 from nonebot import logger
 from src.util.image_utils import _process_pollinations_url
 
@@ -48,7 +49,7 @@ def load_memory(group_id,current_user_id,current_user_name,current_user_card):
     LLM 需解析 <content> 区块提取有效语境，禁止将原始报文或XML标签直接透传至终端对话。
 
     """
-    print("加载上下文")
+    logger.info("开始加载上下文")
   
     history = group_message_history.get(int(group_id))
     #得到当前群的所有消息列表
@@ -82,14 +83,15 @@ def load_memory(group_id,current_user_id,current_user_name,current_user_card):
             result.append("")  # 空行
 
         result = "\n".join(result)
-   
-    print(result)
+     
     result= f"""<group_message>
     <source>group_message</source>
     <content>
     {result}
     </content>
     </group_message>"""
+
+    print(result)
 
     return result
     
@@ -151,7 +153,7 @@ class PromptInjectionError(Exception):
 
 
 @before_agent
-def first_layer_security(state: AgentState,runtime: ToolRuntime[Context]):
+async def first_layer_security(state: AgentState,runtime: ToolRuntime[Context]):
     msg=runtime.context.msg
 
     # 常见提示词注入模式正则表达式
@@ -228,6 +230,7 @@ async def _(bot: Bot, event: MessageEvent, message: Message = EventMessage()):
     message=replace_cq_codes_with_image_placeholder(str(message))
     message=str(message).replace("/testllm","",1)## 删除输入的第一个/testllm 防止模型混淆
     rag_context=await retrieve_context(message)##召回rag
+    
     memory=load_memory(group_id,user_id,user_name,user_card)##加载短期记忆
     msg=f"{rag_context}\n\n<<USER>>\n{message}\n<</USER>>\n\n\n{memory}"##拼接rag召回的内容和用户提示词
 
@@ -247,28 +250,36 @@ async def _(bot: Bot, event: MessageEvent, message: Message = EventMessage()):
         
         context = result["messages"][-1].content
 
+
+
         # 解析@标记并转换为真正的@消息
         ##final_message = await parse_at_mentions(bot, int(group_id), context)
 
-        print(f"\n输出的最终提示词【{context}】\n")
+        logger.info(f"\n输出的最终提示词【{context}】\n")
 
-        text_part, img_list,is_succeed =await _process_pollinations_url(str(context))
-        ##返回context里面的text和 以本地pathfile组成的图片列表list
-        if is_succeed is False:##如果有一个图片加载失败就返回
+        text_part, img_list, is_succeed = await _process_pollinations_url(str(context))
+
+        if is_succeed is False:
             await llm.send(Message("图片服务器连接超时了哦，请稍后再试"))
-            return 
+            return
 
-        final_message = await parse_at_mentions(bot, int(group_id), text_part or "")
+        # 先切分文本（基于原始 text_part，避免 Message 对象干扰切分）
+        segments = await split_message_for_human(text_part or "")
+        if not segments:
+            logger.warning("split_message_for_human returned empty, skipping send")
+            return
 
-        if img_list :##循环拿到图片的本地uri
-            msg = Message(final_message) if final_message else Message()
-            
-            for pathfile in img_list:
-                msg.append(MessageSegment.image(Path(pathfile).as_uri()))
-
+        for i, segment in enumerate(segments):
+            # 每段单独做 @ 转换（parse_at_mentions 返回 Message）
+            msg = await parse_at_mentions(bot, int(group_id), segment)
+            # 最后一条附带所有图片
+            if i == len(segments) - 1 and img_list:
+                for pathfile in img_list:
+                    msg.append(MessageSegment.image(Path(pathfile).as_uri()))
             await llm.send(msg)
-        else:
-            await llm.send(final_message)
+            # 最后一条之后不需要等待
+            if i < len(segments) - 1:
+                await asyncio.sleep(1)
         
         
         '''MINIMAX 兼容
