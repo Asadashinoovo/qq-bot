@@ -16,7 +16,7 @@ from src.config.llmconfig import llmmodel
 from src.plugins import system_prompt
 from src.agents.agent_config import DEFAULT_AGENT_CONFIG
 from src.tools.load_image import create_image
-import re,httpx,os,time,asyncio
+import re,httpx,os,time,asyncio,random
 from pathlib import Path
 from src.tools.user_at import user_at
 from src.tools.split_message import split_message_for_human
@@ -279,7 +279,7 @@ async def _(bot: Bot, event: MessageEvent, message: Message = EventMessage()):
             await llm.send(msg)
             # 最后一条之后不需要等待
             if i < len(segments) - 1:
-                await asyncio.sleep(1)
+                await asyncio.sleep(random.uniform(1, 2))
         
         
         '''MINIMAX 兼容
