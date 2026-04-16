@@ -1903,6 +1903,7 @@ name = "mai-bot"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "aiofiles" },
     { name = "aiohttp" },
     { name = "arrow" },
     { name = "crawl4ai" },
@@ -1935,6 +1936,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aiofiles", specifier = ">=23.0.0" },
     { name = "aiohttp", specifier = ">=3.13.4" },
     { name = "arrow", specifier = ">=1.4.0" },
     { name = "crawl4ai", specifier = ">=0.8.6" },

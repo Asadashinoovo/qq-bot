@@ -1,6 +1,7 @@
 # qq-bot 个人项目
 
 正在努力开发中
+bot.py 启动
 
 ## License
 

@@ -44,6 +44,7 @@ async def load_image(query: str, runtime: ToolRuntime[Context]) -> str:
     Returns:
         图片的详细结构化描述。若路径无效、权限不足或解析失败，返回明确的错误提示供 Agent 重试或降级。
     """
+    logger.info("[load_image] 开始调用图片总结功能")
     try:
         bot = runtime.context.bot
         client = get_longcat_client()
@@ -54,14 +55,17 @@ async def load_image(query: str, runtime: ToolRuntime[Context]) -> str:
             image_base64=b64,
             prompt="请用中文简要描述这张图片"
         )
-        print("调用图片总结完毕")
+        logger.info(f"[load_image] API 调用成功，描述={description[:50]}")
         return f"✅ 成功加载图片:描述如下{description}"
 
     except FileNotFoundError as e:
+        logger.error(f"[load_image] 文件未找到: {e}")
         return f"⚠️ 图片文件未找到: {str(e)}"
     except ValueError as e:
+        logger.error(f"[load_image] 参数错误: {e}")
         return f"⚠️ 参数错误: {str(e)}"
     except Exception as e:
+        logger.exception(f"[load_image] 未知异常: {e}")
         return f"⚠️ 图片处理失败: {type(e).__name__}"
 
 

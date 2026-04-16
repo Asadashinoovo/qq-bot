@@ -1,6 +1,6 @@
 from langchain_community.vectorstores import FAISS
 import os
-
+from nonebot import logger
 
 def load_rag(embeddings, index_path: str):
     """
@@ -20,11 +20,11 @@ def load_rag(embeddings, index_path: str):
                 embeddings,
                 allow_dangerous_deserialization=True
             )
-            print("RAG 索引加载成功")
+            logger.info("RAG 索引加载成功")
             return vector_store
         except Exception as e:
-            print(f"RAG 索引加载失败: {e}")
+            logger.info(f"RAG 索引加载失败: {e}")
             return None
     else:
-        print("未找到 RAG 索引文件")
+        logger.info("未找到 RAG 索引文件")
         return None

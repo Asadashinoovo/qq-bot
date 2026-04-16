@@ -3,6 +3,7 @@ from langchain.agents import create_agent
 from src.skills.skill.luokewangkuo import get_luoke_info
 from src.skills.skill.summary_gruop_content import get_group_msg_skill
 from src.config.llmconfig import basemodel
+from nonebot import logger
 
 @tool
 async def load_luoke_skill(query: str) -> str:
@@ -18,7 +19,7 @@ async def load_luoke_skill(query: str) -> str:
     Returns:
         格式化为 <skill> </skill>包裹的检索内容，供后续回答严格引用。
     """
-    print('加载洛克王国skill')
+    logger.info('加载洛克王国skill')
     msg=get_luoke_info()
 
     msg=f"""<skill>
@@ -60,7 +61,7 @@ async def summarize(query:str)-> str:
         2:当总结内容出现形如[本地图片路径]XXXXXXXX[/本地图片路径]时,你需要调用load_image传入图片路径,获取图片描述,严禁直接返回本地地址
        
     """
-    print("调用工具summary")
+    logger.info("调用工具summary")
     skill_rules=get_group_msg_skill()
     prompt = f'''你是一个专业的群聊总结助手。请严格遵循以下规则与步骤执行总结任务：
                 {skill_rules}
@@ -75,7 +76,7 @@ async def summarize(query:str)-> str:
     )
     result=await skill_agent.ainvoke(
             {"messages": [{"role": "user", "content": query}]})
-    print("聊天记录总结成功")
+    logger.info("聊天记录总结成功")
     
     return  result["messages"][-1].content
     

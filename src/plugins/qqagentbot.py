@@ -266,8 +266,16 @@ async def _(bot: Bot, event: MessageEvent, message: Message = EventMessage()):
         # 先切分文本（基于原始 text_part，避免 Message 对象干扰切分）
         segments = await split_message_for_human(text_part or "")
         if not segments:
-            logger.warning("split_message_for_human returned empty, skipping send")
+            # 纯图片回复，没有文字
+            if img_list:
+                msg = Message()
+                for pathfile in img_list:
+                    msg.append(MessageSegment.image(Path(pathfile).as_uri()))
+                await llm.send(msg)
+            else:
+                logger.warning("split_message_for_human返回空")
             return
+
 
         for i, segment in enumerate(segments):
             # 每段单独做 @ 转换（parse_at_mentions 返回 Message）

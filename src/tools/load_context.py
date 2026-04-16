@@ -1,6 +1,7 @@
 from langchain.tools import tool, ToolRuntime
 from src.util.runtime import Context
 from src.plugins.public import group_message_history
+from nonebot import logger
 @tool
 async def load_context(runtime: ToolRuntime[Context]):
     """
@@ -17,7 +18,7 @@ async def load_context(runtime: ToolRuntime[Context]):
     LLM 需解析 <content> 区块提取有效语境，禁止将原始报文或XML标签直接透传至终端对话。
 
     """
-    print("调用工具，加载上下文")
+    logger.info("调用工具，加载上下文")
     group_id = runtime.context.group_id
     current_user_id = runtime.context.user_id
     current_user_name=runtime.context.user_name
@@ -56,3 +57,5 @@ async def load_context(runtime: ToolRuntime[Context]):
     </group_message>"""
 
     return result
+
+

@@ -235,23 +235,29 @@ class LongCatClient:
         """
         describe_image 的异步版本。
         仅支持 image_base64 参数（图片路径和URL请自行转换后再传入）。
+        通过 asyncio.to_thread 将同步 API 调用在线程池中执行，避免阻塞事件循环。
         """
-        response = await self.client.chat.completions.create(
-            model=self.model,
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "input_image",
-                        "input_image": {
-                            "type": "base64",
-                            "data": [image_base64]
-                        }
-                    },
-                    {"type": "text", "text": prompt}
-                ]
-            }],
-            stream=False,
-            timeout=timeout
-        )
+        import asyncio
+
+        def _sync_call():
+            return self.client.chat.completions.create(
+                model=self.model,
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_image",
+                            "input_image": {
+                                "type": "base64",
+                                "data": [image_base64]
+                            }
+                        },
+                        {"type": "text", "text": prompt}
+                    ]
+                }],
+                stream=False,
+                timeout=timeout
+            )
+
+        response = await asyncio.to_thread(_sync_call)
         return response.choices[0].message.content.strip()

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict
 import importlib.util
 from .registry import SkillRegistry, SkillEntry
-
+from nonebot import logger
 
 class SkillAutoLoader:
     """自动加载技能"""
@@ -48,10 +48,10 @@ class SkillAutoLoader:
                     keywords=getattr(module, 'KEYWORDS', []),
                     process=getattr(module, 'PROCESS', "")
                 ))
-                print(f"已加载技能: {module.SKILL_ID} - {getattr(module, 'NAME', module.SKILL_ID)}")
+                logger.info(f"已加载技能: {module.SKILL_ID} - {getattr(module, 'NAME', module.SKILL_ID)}")
 
             except Exception as e:
-                print(f"加载 {py_file.name} 失败: {e}")
+                logger.info(f"加载 {py_file.name} 失败: {e}")
 
         self._loaded = True
         return registry._skills
