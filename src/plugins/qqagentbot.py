@@ -3,10 +3,9 @@ from nonebot import on_command
 from nonebot.adapters.onebot.v11 import Message, Bot, MessageSegment
 from nonebot.adapters.onebot.v11 import MessageEvent
 from nonebot.params import EventMessage
-from langchain.tools import tool
 from src.plugins.public import group_message_history, parse_at_mentions
 from dataclasses import dataclass
-from langchain.tools import tool, ToolRuntime
+from langchain.tools import ToolRuntime
 from langchain_community.embeddings import DashScopeEmbeddings
 from src.rag.load_index import load_rag
 from langchain.agents.middleware import before_agent,after_agent
@@ -22,6 +21,8 @@ from src.tools.user_at import user_at
 from src.tools.split_message import split_message_for_human
 from nonebot import logger
 from src.util.image_utils import _process_pollinations_url
+
+
 
 PROMPT = system_prompt.PROMPT
 

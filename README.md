@@ -2,6 +2,8 @@
 
 正在努力开发中
 bot.py 启动
+src.plugins.qqagentbot.py 为agent主代码
+剩下问cc
 
 ## License
 
