@@ -236,6 +236,17 @@ async def getinfo(bot: Bot, event: Event, state: T_State):
         result.append(f"{i}. [{msg['user_name']}]: {msg['message']}")
     await get.send("\n".join(result))
 
+def record_bot_msg(group_id: int, msg_str: str, bot: Bot,time):
+      if group_id not in group_message_history:
+          group_message_history[group_id] = deque(maxlen=100)
+      group_message_history[group_id].append({
+          "user_id": str(bot.self_id),
+          "user_name": "",
+          "user_card": "",
+          "message": msg_str,
+          "message_id": None,
+          "time": time
+      })
 
 
 async def parse_at_mentions(bot: Bot, group_id: int, text: str) -> Message:

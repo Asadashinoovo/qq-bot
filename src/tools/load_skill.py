@@ -42,13 +42,14 @@ async def summarize(query:str)-> str:
     Args:
         query: 当前的群聊上下文，从<group_message> XML标签内获取完整的上下文信息,但是要去除XML标签只保留正文
             正文如下:
-                【重要】当前用户信息（提问者）：
+                【重要】当前用户信息(提问者):
                 - QQ号: XXXX
                 - 用户名: XXXX
                 - 群名片: XXXX
 
                 【群聊历史记录】（仅供参考）：
                 群 XXXXX 的最近 XXXXX 条消息：
+
                 QQ号:XXXXX用户名:XXXX 群名片:XXXX
                 message: XXXXX
 
