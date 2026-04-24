@@ -194,7 +194,7 @@ async def preprocessor(bot:Bot, event: Event):
         message=event.message
 
       
-        message=replace_cq_codes_with_image_placeholder(str(message))
+        message=await replace_cq_codes_with_image_placeholder(str(message), bot)
         
         
         if group_id not in group_message_history:
@@ -236,9 +236,17 @@ async def getinfo(bot: Bot, event: Event, state: T_State):
         result.append(f"{i}. [{msg['user_name']}]: {msg['message']}")
     await get.send("\n".join(result))
 
-def record_bot_msg(group_id: int, msg_str: str, bot: Bot,time):
+
+def record_bot_msg(group_id: int, msg_str: str, bot: Bot, time, img_list: list = None):
+      from src.security.encryption import encrypt_file_id
       if group_id not in group_message_history:
           group_message_history[group_id] = deque(maxlen=100)
+
+      # 拼接图片加密路径
+      if img_list:
+          encrypted_paths = "\n".join(f"【当前图片】{encrypt_file_id(p)}【当前图片】" for p in img_list)
+          msg_str = f"{msg_str}\n{encrypted_paths}"
+
       group_message_history[group_id].append({
           "user_id": str(bot.self_id),
           "user_name": "",

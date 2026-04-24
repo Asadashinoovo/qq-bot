@@ -5,7 +5,7 @@ from langchain.tools import tool, ToolRuntime
 from src.util.runtime import Context
 from src.config.longcat_client import LongCatClient
 from src.config.pollinations_client import PollinationsImageClient
-from src.util.image_utils import get_local_path
+
 from src.security.encryption import decrypt_file_id
 from nonebot import logger
 
@@ -36,10 +36,10 @@ async def _local_image_to_base64(local_path: str) -> str:
 async def load_image(query: str, runtime: ToolRuntime[Context]) -> str:
     """
     【触发条件】
-        出现形如【当前图片】 【当前图片】调用此工具提取路径并分析图片。
+        出现形如【当前图片】ASJFKHAIGHpng【当前图片】调用此工具提取路径并分析图片。
 
     Args:
-        query: 【当前图片】ASJFKHAIGHpng【当前图片】
+        query: ASJFKHAIGHpng,注意去掉【当前图片】【当前图片】标识符
 
     Returns:
         图片的详细结构化描述。若路径无效、权限不足或解析失败，返回明确的错误提示供 Agent 重试或降级。
@@ -48,8 +48,9 @@ async def load_image(query: str, runtime: ToolRuntime[Context]) -> str:
     try:
         bot = runtime.context.bot
         client = get_longcat_client()
-        file_id = decrypt_file_id(query)
-        local_path = await get_local_path(bot, file_id)
+     
+        local_path = decrypt_file_id(query)
+
         b64 = await _local_image_to_base64(local_path)
         description = await client.describe_image_async(
             image_base64=b64,

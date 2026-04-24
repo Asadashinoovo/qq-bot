@@ -20,6 +20,10 @@ from src.util.image_utils import _process_pollinations_url
 from src.util.runtime import Context
 from src.util.custom_exception import PromptInjectionError
 from src.util.image_utils import replace_cq_codes_with_image_placeholder
+from src.util.middleware import *
+from src.tools.load_skill import *
+from src.tools.crawl import crawl_browser
+
 
 PROMPT = system_prompt.PROMPT
 
@@ -75,7 +79,7 @@ def load_memory(group_id,current_user_id,current_user_name,current_user_card,bot
             result.append("")  # 空行
 
         result = "\n".join(result)
-     
+    
     result= f"""<group_message>
     <source>group_message</source>
     <content>
@@ -176,10 +180,6 @@ async def retrieve_context_yuanshiindex(query: str):
     </rag_context>"""
 
 
-from src.util.middleware import *
-from src.tools.load_skill import *
-
-from src.tools.crawl import crawl_browser
 agent = create_agent(
     model=llmmodel,
     system_prompt=PROMPT,
@@ -211,7 +211,7 @@ async def _(bot: Bot, event: MessageEvent, message: Message = EventMessage()):
     user_name=event.sender.nickname
     
 
-    message=replace_cq_codes_with_image_placeholder(str(message))
+    message=await replace_cq_codes_with_image_placeholder(str(message), bot)
     message=str(message).replace("/testllm","",1)## 删除输入的第一个/testllm 防止模型混淆
     rag_context=await retrieve_context_yuanshiindex(message)##召回rag
 
@@ -250,10 +250,18 @@ async def _(bot: Bot, event: MessageEvent, message: Message = EventMessage()):
 
 
         ##保存bot自己的信息到memory里面
-        record_bot_msg(group_id,text_part,bot,int(time.time()))
+        record_bot_msg(group_id, text_part, bot, int(time.time()), img_list)
 
 
-        # 先切分文本（基于原始 text_part，避免 Message 对象干扰切分）
+        string=await parse_at_mentions(bot, int(group_id), text_part)
+        for pathfile in img_list:
+            string.append(MessageSegment.image(Path(pathfile).as_uri()))
+
+        await llm.send(string)
+
+
+        
+        '''# 先切分文本（基于原始 text_part，避免 Message 对象干扰切分）
         segments = await split_message_for_human(text_part or "")
         if not segments:
             # 纯图片回复，没有文字
@@ -279,6 +287,8 @@ async def _(bot: Bot, event: MessageEvent, message: Message = EventMessage()):
             if i < len(segments) - 1:
                 await asyncio.sleep(random.uniform(1, 2))
         
+            '''
+
         
         '''MINIMAX 兼容
         context = extract_reply(result["messages"][-1].content)

@@ -9,63 +9,58 @@ import uuid
 from nonebot import logger
 import re, base64, asyncio, httpx
 
-def _extract_file_id_from_cq(cq_query: str) -> str:
-    """
-    从 [CQ:image,...] 中提取 file 参数, 并且对参数进行加密
-    示例: [CQ:image,summary=,file=ABC.png,...] → "ABC.png"
-    """
-    match = re.search(r'file=([^,\]]+)', cq_query)
-    if not match:
-        raise ValueError(f"未找到 file 参数: {cq_query}")
-    
-    return encrypt_file_id(match.group(1).strip())
-
-
 def _local_image_to_base64(local_path: str) -> str:
     """读取本地图片文件转 base64（纯字符串）"""
     # 处理 file:// 协议（部分适配器返回）
     if local_path.startswith("file://"):
         from urllib.parse import urlparse
         local_path = urlparse(local_path).path
-    
+
     if not os.path.exists(local_path):
         raise FileNotFoundError(f"本地图片不存在: {local_path}")
-    
+
     with open(local_path, "rb") as f:
         return base64.b64encode(f.read()).decode("utf-8")
 
-
-async def get_local_path(bot, file_id: str) -> str:
-    """
-    调用 bot.call_api("get_image") 获取本地路径
-    
-    """
-    res = await bot.call_api("get_image", file=file_id)
-    return res.get("file", "")
-
-  
 
 
 CQ_PATTERN = re.compile(r'\[CQ:image,[^\]]+\]')
 
 
-def replace_cq_codes_with_image_placeholder(message: str) -> str:
+async def replace_cq_codes_with_image_placeholder(message: str, bot) -> str:
     """
-    将 message 中的 [CQ:image,...] 替换为 【当前图片】fileID【当前图片】,并且把fileID采用AES-128-CBC加密
+    将 message 中的 [CQ:image,...] 替换为 【当前图片】加密的本地路径【当前图片】
 
     示例输入: "/testllm 请分析[CQ:image,summary=,file=ABC.png,sub_type=0]"
-    示例输出: "/testllm 请分析【当前图片】ABC.png【当前图片】"
+    示例输出: "/testllm 请分析【当前图片】加密路径【当前图片】"
     """
-    def _replace_cq(cq_match: re.Match) -> str:
+    async def _replace_cq(cq_match: re.Match) -> str:
         cq_text = cq_match.group(0)
         try:
-            file_id = _extract_file_id_from_cq(cq_text)
-            return f"【当前图片】{file_id}【当前图片】"
-        except ValueError:
-            # 如果提取失败，保留原文本
+            # 提取原始 file_id
+            match = re.search(r'file=([^,\]]+)', cq_text)
+            if not match:
+                return cq_text
+            file_id = match.group(1).strip()
+
+            # 调用 get_image API 获取本地路径
+            res = await bot.call_api("get_image", file=file_id)
+            local_path = res.get("file", "")
+            if not local_path:
+                return cq_text
+
+            # 加密本地路径
+            encrypted = encrypt_file_id(local_path)
+            return f"【当前图片】{encrypted}【当前图片】"
+        except Exception:
             return cq_text
 
-    return CQ_PATTERN.sub(_replace_cq, message)
+    result = message
+    for match in CQ_PATTERN.finditer(message):
+        replacement = await _replace_cq(match)
+        result = result.replace(match.group(0), replacement, 1)
+
+    return result
 
 
 async def _process_pollinations_url(text: str) -> tuple[str, list[str],bool]:
