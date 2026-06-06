@@ -15,4 +15,10 @@ basemodel = ChatOpenAI(
     temperature=0
 )
 
+deepseekmodel = ChatOpenAI(
+    api_key=os.environ.get('deepseek_api_key'),
+    base_url="https://api.deepseek.com",
+    model="deepseek-chat",
+)
+
 

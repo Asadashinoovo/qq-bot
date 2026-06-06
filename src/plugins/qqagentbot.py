@@ -1,5 +1,6 @@
 from langchain.agents import create_agent
-from nonebot import on_command
+from nonebot import on_command, on_message
+from nonebot.rule import to_me
 from nonebot.adapters.onebot.v11 import Message, Bot, MessageSegment
 from nonebot.adapters.onebot.v11 import MessageEvent
 from nonebot.params import EventMessage
@@ -74,9 +75,9 @@ def load_memory(group_id,current_user_id,current_user_name,current_user_card,bot
                 time_str = f"{seconds_ago // 3600}小时前"
             else:
                 time_str = f"{seconds_ago // 86400}天前"
-            result.append(f"[{time_str}] QQ号:{msg['user_id']} 用户名:{msg['user_name']} 群名片:{msg['user_card']}")
-            result.append(f"message: {msg['message']}")
-            result.append("")  # 空行
+            result.append(f'<msg qq="{msg["user_id"]}" name="{msg["user_name"]}" card="{msg["user_card"]}" time="{time_str}">')
+            result.append(msg['message'])
+            result.append("</msg>")
 
         result = "\n".join(result)
     
@@ -179,9 +180,9 @@ async def retrieve_context_yuanshiindex(query: str):
     </content>
     </rag_context>"""
 
-
+from src.config.llmconfig import deepseekmodel
 agent = create_agent(
-    model=llmmodel,
+    model=deepseekmodel,
     system_prompt=PROMPT,
     tools=[user_at,load_luoke_skill,summarize,load_image,create_image,crawl_browser],##load_context
     ##get_group_messages
@@ -194,7 +195,7 @@ from src.agents.checkagent import get_checkagent_simple
 
 
 
-llm=on_command('/testllm')
+llm=on_message(rule=to_me())
 @llm.handle()
 async def _(bot: Bot, event: MessageEvent, message: Message = EventMessage()):
 
@@ -212,7 +213,6 @@ async def _(bot: Bot, event: MessageEvent, message: Message = EventMessage()):
     
 
     message=await replace_cq_codes_with_image_placeholder(str(message), bot)
-    message=str(message).replace("/testllm","",1)## 删除输入的第一个/testllm 防止模型混淆
     rag_context=await retrieve_context_yuanshiindex(message)##召回rag
 
     memory=load_memory(group_id,user_id,user_name,user_card,bot)##加载短期记忆
@@ -245,7 +245,7 @@ async def _(bot: Bot, event: MessageEvent, message: Message = EventMessage()):
 
         if is_succeed is False:
             await llm.send(Message("图片服务器连接超时了哦，请稍后再试"))
-            record_bot_msg(group_id,"图片服务器连接超时了哦，请稍后再试",bot,int(time.time()))
+            # record_bot_msg(group_id,"图片服务器连接超时了哦，请稍后再试",bot,int(time.time()))
             return
 
 
@@ -260,44 +260,7 @@ async def _(bot: Bot, event: MessageEvent, message: Message = EventMessage()):
         await llm.send(string)
 
 
-        
-        '''# 先切分文本（基于原始 text_part，避免 Message 对象干扰切分）
-        segments = await split_message_for_human(text_part or "")
-        if not segments:
-            # 纯图片回复，没有文字
-            if img_list:
-                msg = Message()
-                for pathfile in img_list:
-                    msg.append(MessageSegment.image(Path(pathfile).as_uri()))
-                await llm.send(msg)
-            else:
-                logger.warning("split_message_for_human返回空")
-            return
-
-
-        for i, segment in enumerate(segments):
-            # 每段单独做 @ 转换（parse_at_mentions 返回 Message）
-            msg = await parse_at_mentions(bot, int(group_id), segment)
-            # 最后一条附带所有图片
-            if i == len(segments) - 1 and img_list:
-                for pathfile in img_list:
-                    msg.append(MessageSegment.image(Path(pathfile).as_uri()))
-            await llm.send(msg)
-            # 最后一条之后不需要等待
-            if i < len(segments) - 1:
-                await asyncio.sleep(random.uniform(1, 2))
-        
-            '''
-
-        
-        '''MINIMAX 兼容
-        context = extract_reply(result["messages"][-1].content)
-        # 解析@标记并转换为真正的@消息
-        final_message = await parse_at_mentions(bot, int(group_id), context)
-
-        await llm.send(final_message)
-        '''
-
+      
 
     except PromptInjectionError as e:
         # 捕获到提示词注入异常，直接返回错误消息
